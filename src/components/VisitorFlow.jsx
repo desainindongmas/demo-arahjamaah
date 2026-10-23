@@ -213,37 +213,8 @@ export default function VisitorFlow({
           "Permintaan pilot belum dapat dikonfirmasi. Coba lagi dengan referensi yang sama.",
         );
 
-      if (!["localhost", "127.0.0.1"].includes(window.location.hostname)) {
-        const lead = new URLSearchParams({
-          "form-name": "pilot-request",
-          organization: r.organization,
-          plan: r.plan,
-          organizationType: r.organizationType,
-          module: r.module,
-          annualJamaah: String(r.volume),
-          activeDepartures: String(r.departures),
-          users: String(r.users),
-          branches: String(r.branches),
-          referral: r.referral || "",
-          contactName: contact.name,
-          email: contact.email,
-          phone: contact.phone,
-          note: contact.note || "",
-          reference: result.reference,
-        });
-        const leadResponse = await fetch("/", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: lead.toString(),
-        });
-        if (!leadResponse.ok)
-          throw Error(
-            "Permintaan sudah tersimpan, tetapi belum berhasil dikirim ke Tim Arah Jamaah. Silakan coba lagi.",
-          );
-      }
-
       setDraft((d) => ({ ...d, receipt: result, step: 4 }));
-      onNotice("Permintaan pilot berhasil dikirim ke Tim Arah Jamaah.");
+      onNotice("Permintaan pilot berhasil tersimpan. Tim Arah Jamaah dapat menindaklanjuti data ini.");
     } catch (e) {
       setError(e.message);
     } finally {
