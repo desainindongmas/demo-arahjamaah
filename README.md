@@ -25,6 +25,12 @@ npm start
 
 Tidak membutuhkan API key, database eksternal, atau koneksi foto/font eksternal. SQLite disimpan di `.data/demo.sqlite` (diabaikan Git). `DB_PATH` dapat mengubah lokasinya. Proses server perlu dijalankan lagi setelah lingkungan dipulihkan.
 
+## Tur dan alur berlangganan
+
+Pengunjung baru mendapat pilihan tur singkat, jelajah mandiri, atau langsung hitung kebutuhan. Navigasi **Jelajah & Kebutuhan** menyediakan alur penggunaan → kalkulator kebutuhan travel → rekomendasi ilustratif → pemesanan simulasi → receipt yang dapat diunduh. Draft bertahan setelah reload pada browser yang sama. Harga resmi belum tersedia dan tidak ada pembayaran atau aktivasi nyata.
+
+Lihat [rincian alur pengunjung dan asumsi perhitungan](docs/VISITOR_FLOW.md).
+
 ## Alur demonstrasi
 
 1. **Command Center:** rata-rata readiness, departure health, prioritas, forecast cash shortfall, dan ringkasan profit.

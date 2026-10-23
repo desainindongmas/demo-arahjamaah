@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
-test.beforeEach(async ({ request }) => {
+test.beforeEach(async ({ request, page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem("arah-onboarding-v1", JSON.stringify({ seen: true })),
+  );
   await request.post("/api/reset");
 });
 test("lead → booking → pending payment → verified DP; persists after reload", async ({
@@ -225,7 +228,11 @@ test("cancellation and refund are visible with preserved history", async ({
   await page
     .getByLabel("Alasan / referensi refund")
     .fill("Transfer dummy dikembalikan");
-  const refundResponse = page.waitForResponse(r => r.url().endsWith("/api/action") && r.request().postDataJSON()?.action === "refund");
+  const refundResponse = page.waitForResponse(
+    (r) =>
+      r.url().endsWith("/api/action") &&
+      r.request().postDataJSON()?.action === "refund",
+  );
   await page.getByRole("button", { name: "Konfirmasi refund" }).click();
   expect((await refundResponse).ok()).toBe(true);
   await expect(
@@ -239,13 +246,11 @@ test("uploading a dummy PDF returns document to review", async ({ page }) => {
     .getByRole("button", { name: "Unggah dokumen Siti Aminah", exact: true })
     .click();
   await page.getByLabel("Jenis dokumen").selectOption("visa");
-  await page
-    .getByLabel("Pilih berkas dummy")
-    .setInputFiles({
-      name: "contoh-visa.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from("%PDF-1.4 dummy test document"),
-    });
+  await page.getByLabel("Pilih berkas dummy").setInputFiles({
+    name: "contoh-visa.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.4 dummy test document"),
+  });
   await page.getByRole("button", { name: "Unggah untuk review" }).click();
   await expect(
     page.locator("tr").filter({ hasText: "Siti Aminah" }),

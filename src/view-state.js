@@ -2,6 +2,9 @@ import { derive, can } from "./domain.js";
 
 export function viewState(db, role) {
   db = structuredClone(db);
+  // Visitor receipts are returned only to the submitting request, never in
+  // the shared workspace payload. The browser retains its own receipt.
+  delete db.subscriptionOrders;
   const engine = derive(db);
   if (["ops", "sales", "admin"].includes(role)) {
     delete db.openingCash;

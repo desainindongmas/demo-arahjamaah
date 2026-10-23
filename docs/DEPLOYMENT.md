@@ -64,8 +64,10 @@ Reset skenario tersedia pada **Pengaturan → Workspace → Reset skenario demo*
 ```sh
 npm ci
 npm run dev          # Express + SQLite lokal, tanpa akun Netlify
-npm test             # 32 uji domain/API/adapter Netlify
-npm run test:netlify  # 8 alur browser melalui native function + SDK Blobs
+npm test             # 45 uji domain/API/adapter Netlify
+npm run test:netlify  # 15 alur browser melalui native function + SDK Blobs
 ```
 
 Pengujian Netlify menggunakan fixture HTTP lokal dengan ETag dan conditional writes; tidak mengklaim deployment atau storage live di akun Netlify telah diverifikasi. Uji storage asli memerlukan deployment ke project milik pengguna.
+
+Tur pengunjung, kalkulator kebutuhan langganan, dan pemesanan simulasi dijelaskan di [VISITOR_FLOW.md](VISITOR_FLOW.md). Setelah deployment, pengunjung baru melihat tur otomatis; pengunjung lama dapat mengulangnya melalui tombol **Jelajah demo** di header.

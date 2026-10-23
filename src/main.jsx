@@ -54,11 +54,13 @@ import {
 } from "lucide-react";
 import { can, TODAY, policy } from "./domain.js";
 import "./styles.css";
+import VisitorOnboarding from "./components/VisitorOnboarding.jsx";
+import VisitorFlow from "./components/VisitorFlow.jsx";
 const money = (v, short = false) =>
   v == null
     ? "—"
     : short
-      ? `${v < 0 ? '−' : ''}Rp${(Math.abs(v) / 1000000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} jt`
+      ? `${v < 0 ? "−" : ""}Rp${(Math.abs(v) / 1000000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} jt`
       : `${v < 0 ? "−" : ""}Rp${Math.abs(v).toLocaleString("id-ID")}`;
 const date = (v) =>
   v
@@ -109,6 +111,7 @@ const nav = [
     section: "WORKSPACE",
     items: [
       ["dashboard", "Command Center", LayoutDashboard],
+      ["journey", "Jelajah & Kebutuhan", Compass],
       ["departures", "Keberangkatan", Plane],
       ["people", "Jamaah", Users],
       ["leads", "Leads & Booking", Contact],
@@ -204,6 +207,8 @@ function App() {
     [tab, setTab] = useState("payments"),
     [notifs, setNotifs] = useState(false),
     [loadError, setLoadError] = useState("");
+  const [onboardingControl, setOnboardingControl] = useState(null);
+  const appRef = useRef(null);
   const modalRef = useRef(null);
   modalRef.current = modal;
   const headers = { "Content-Type": "application/json", "x-demo-role": role };
@@ -318,6 +323,17 @@ function App() {
   ) => setModal({ title, description, fields, submit, button });
   const confirm = (title, description, submit, button = "Konfirmasi") =>
     setModal({ title, description, submit, button, fields: [] });
+  const openOnboarding = (mode = "welcome") => {
+    setModal(null);
+    setSidebar(false);
+    setNotifs(false);
+    setOnboardingControl({ id: crypto.randomUUID(), mode });
+  };
+  const navigateVisitor = (destination, nextTab) => {
+    goto(destination);
+    if (nextTab) setTab(nextTab);
+    else if (destination === "journey") setTab("overview");
+  };
   const goto = (p) => {
     setSelected(null);
     setPage(p);
@@ -844,7 +860,7 @@ function App() {
   const namePage = nav.flatMap((n) => n.items).find((n) => n[0] === page)?.[1];
   return (
     <>
-      <div className={`app-shell ${sidebar ? "nav-open" : ""}`}>
+      <div ref={appRef} className={`app-shell ${sidebar ? "nav-open" : ""}`}>
         <div className="nav-overlay" onClick={() => setSidebar(false)} />
         <aside className="sidebar">
           <a
@@ -905,27 +921,13 @@ function App() {
               </div>
               <b>Langkah baik, lebih terarah.</b>
               <p>Kenali cara Arah Jamaah membantu perjalanan Anda.</p>
-              <button
-                onClick={() =>
-                  setModal({
-                    title: "Selamat datang di demo Arah Jamaah",
-                    description: "Coba alur dari prospek hingga keberangkatan.",
-                    tour: true,
-                  })
-                }
-              >
+              <button onClick={() => openOnboarding()}>
                 Jelajahi demo <ArrowUpRight size={15} />
               </button>
             </div>
             <button
               className="support-btn"
-              onClick={() =>
-                setModal({
-                  title: "Pusat bantuan demo",
-                  description: "Panduan singkat untuk mencoba Arah Jamaah.",
-                  tour: true,
-                })
-              }
+              onClick={() => navigateVisitor("journey")}
             >
               <LifeBuoy size={18} />
               Pusat bantuan
@@ -964,6 +966,15 @@ function App() {
               <b>{namePage}</b>
             </div>
             <div className="topbar-right">
+              <button
+                className="visitor-replay-button"
+                aria-label="Ulangi tur demo"
+                title="Jelajah demo"
+                onClick={() => openOnboarding()}
+              >
+                <Compass size={17} />
+                <span>Jelajah demo</span>
+              </button>
               <span className="demo-chip">
                 <i />
                 Mode demo
@@ -1058,6 +1069,20 @@ function App() {
                         : "Tambah tugas"}
                   </button>
                 </Header>
+                <div className="visitor-flow-shortcut">
+                  <span>
+                    <Compass size={18} />
+                    <b>Kenali. Coba. Hitung. Pesan.</b>
+                    <small>Temukan alur yang tepat untuk travel Anda.</small>
+                  </span>
+                  <button
+                    className="text-btn"
+                    onClick={() => navigateVisitor("journey")}
+                  >
+                    Mulai dari sini
+                    <ArrowRight size={15} />
+                  </button>
+                </div>
                 <div className="welcome-banner">
                   <div className="banner-pattern" />
                   <div className="banner-content">
@@ -3217,6 +3242,15 @@ function App() {
                 )}
               </>
             )}
+            {page === "journey" && (
+              <VisitorFlow
+                role={role}
+                routeStep={tab === "needs" ? 1 : undefined}
+                onNavigate={navigateVisitor}
+                onStartTour={() => openOnboarding("tour")}
+                onNotice={notify}
+              />
+            )}
             <footer className="page-footer">
               <span>
                 © 2026 Arah Jamaah <i />
@@ -3231,6 +3265,13 @@ function App() {
           </main>
         </div>
       </div>
+      <VisitorOnboarding
+        page={page}
+        finance={finance}
+        onNavigate={navigateVisitor}
+        control={onboardingControl}
+        appRef={appRef}
+      />
       {modal && (
         <div
           className="modal-backdrop"

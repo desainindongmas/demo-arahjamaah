@@ -1,3 +1,4 @@
+import { qualifyNeeds, createSubscriptionOrder } from "./commercial.js";
 export const TODAY = "2026-10-17";
 export const policy = {
   minimumDP: 5000000,
@@ -9,11 +10,11 @@ export const policy = {
 export const can = (role, area) =>
   (
     ({
-      owner: ["sales", "finance", "ops", "admin"],
-      admin: ["sales", "ops"],
-      ops: ["ops"],
-      finance: ["finance"],
-      sales: ["sales"],
+      owner: ["sales", "finance", "ops", "admin", "visitor"],
+      admin: ["sales", "ops", "visitor"],
+      ops: ["ops", "visitor"],
+      finance: ["finance", "visitor"],
+      sales: ["sales", "visitor"],
     })[role] || []
   ).includes(area);
 export function seed() {
@@ -520,6 +521,8 @@ export function derive(db) {
 }
 export function mutate(db, action, data, role = "owner") {
   const areas = {
+    calculateNeeds: "visitor",
+    subscriptionOrder: "visitor",
     qualification: "admin",
     cancelBooking: "finance",
     refund: "finance",
@@ -542,6 +545,8 @@ export function mutate(db, action, data, role = "owner") {
   };
   if (!areas[action] || !can(role, areas[action]))
     throw Error("Akses peran tidak mengizinkan tindakan ini.");
+  if (action === "calculateNeeds") return qualifyNeeds(data);
+  if (action === "subscriptionOrder") return createSubscriptionOrder(db, data);
   const id = () => crypto.randomUUID();
   const requireItem = (list, key) => {
     const v = list.find((x) => x.id === key);
@@ -615,48 +620,13 @@ export function mutate(db, action, data, role = "owner") {
     p.docs[data.type] = "REVIEW";
   }
   if (action === "qualification") {
-    const volume = Number(data.ttm || data.active || 0),
-      branches = Number(data.branches || 1),
-      users = Number(data.users || 1),
-      departures = Number(data.departures || 0);
-    if (
-      [volume, branches, users, departures].some(
-        (n) => !Number.isFinite(n) || n < 0,
-      )
-    )
-      throw Error("Data operasional harus angka positif.");
-    const future = data.module !== "UMRAH_OPERATIONS",
-      review = branches > 1 || users > 50 || departures > 30;
-    const plan = review
-      ? "NETWORK"
-      : volume <= 100
-        ? "MITRA"
-        : volume <= 300
-          ? "STARTER"
-          : volume <= 1000
-            ? "GROWTH"
-            : "SCALE";
+    const recommendation = qualifyNeeds(data);
     db.qualifications ||= [];
     db.qualifications.unshift({
+      ...recommendation,
       id: id(),
-      organization: data.organization,
-      plan: future ? "BELUM TERSEDIA" : plan,
-      provisional: !data.ttm,
-      confidence: future
-        ? "Belum dapat ditawarkan"
-        : data.ttm
-          ? "Berdasarkan input TTM simulasi"
-          : "Provisional · data aktif",
-      manualReview: review || future,
-      reason: future
-        ? "Modul PIHK/KBIHU masih roadmap."
-        : review
-          ? "Kompleksitas jaringan/pengguna memerlukan review."
-          : `${volume} jamaah ${data.ttm ? "TTM" : "aktif"} · ${departures} keberangkatan · ${users} pengguna.`,
-      referral: data.referral || "Tanpa referral",
-      officialPrice: null,
+      referral: recommendation.referral || "Tanpa referral",
       createdAt: new Date().toISOString(),
-      note: "Breakpoint ilustratif, bukan pricing policy yang dipublikasikan.",
     });
   }
   if (action === "lead") {
