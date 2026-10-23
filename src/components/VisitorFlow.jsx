@@ -54,10 +54,12 @@ const modules = {
   HAJJ_GUIDANCE: "Bimbingan Haji · Roadmap",
 };
 const statusLabels = {
-  REQUESTED_DEMO: "Pemesanan simulasi tersimpan",
-  MANUAL_REVIEW_DEMO: "Simulasi memerlukan review",
-  WAITLIST_DEMO: "Minat modul roadmap tercatat",
+  REQUESTED_DEMO: "Permintaan pilot diterima",
+  MANUAL_REVIEW_DEMO: "Permintaan Anda perlu ditinjau",
+  WAITLIST_DEMO: "Minat Anda sudah tercatat",
 };
+const TEAM_WHATSAPP = "6285952839393";
+const TEAM_EMAIL = "admin3@desainindongmas.my.id";
 function restoredDraft() {
   const value = readLocal(JOURNEY_KEY);
   if (value?.version !== 1)
@@ -110,6 +112,15 @@ export default function VisitorFlow({
     route = useRef(routeStep);
   useEffect(() => {
     if (route.current === 1) setDraft((d) => ({ ...d, step: 1 }));
+    const referral = new URLSearchParams(window.location.search).get("ref");
+    if (referral)
+      setDraft((d) => ({
+        ...d,
+        needs: {
+          ...d.needs,
+          referral: d.needs.referral || referral.slice(0, 60),
+        },
+      }));
     route.current = undefined;
   }, []);
   useEffect(() => {
@@ -185,7 +196,7 @@ export default function VisitorFlow({
     if (submitting.current) return;
     setError("");
     if (!consent) {
-      setError("Centang persetujuan simulasi terlebih dahulu.");
+      setError("Centang persetujuan kontak terlebih dahulu.");
       return;
     }
     submitting.current = true;
@@ -199,12 +210,40 @@ export default function VisitorFlow({
       });
       if (!result?.simulation || !result.reference)
         throw Error(
-          "Pemesanan belum terkonfirmasi. Coba lagi dengan referensi yang sama.",
+          "Permintaan pilot belum dapat dikonfirmasi. Coba lagi dengan referensi yang sama.",
         );
+
+      if (!["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+        const lead = new URLSearchParams({
+          "form-name": "pilot-request",
+          organization: r.organization,
+          plan: r.plan,
+          organizationType: r.organizationType,
+          module: r.module,
+          annualJamaah: String(r.volume),
+          activeDepartures: String(r.departures),
+          users: String(r.users),
+          branches: String(r.branches),
+          referral: r.referral || "",
+          contactName: contact.name,
+          email: contact.email,
+          phone: contact.phone,
+          note: contact.note || "",
+          reference: result.reference,
+        });
+        const leadResponse = await fetch("/", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: lead.toString(),
+        });
+        if (!leadResponse.ok)
+          throw Error(
+            "Permintaan sudah tersimpan, tetapi belum berhasil dikirim ke Tim Arah Jamaah. Silakan coba lagi.",
+          );
+      }
+
       setDraft((d) => ({ ...d, receipt: result, step: 4 }));
-      onNotice(
-        "Pemesanan simulasi berhasil disimpan. Tidak ada pembayaran atau aktivasi layanan nyata.",
-      );
+      onNotice("Permintaan pilot berhasil dikirim ke Tim Arah Jamaah.");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -232,17 +271,17 @@ export default function VisitorFlow({
   };
   const exportReceipt = () => {
     const text = [
-      "ARAH JAMAAH — RINGKASAN PEMESANAN SIMULASI",
+      "ARAH JAMAAH — RINGKASAN PERMINTAAN PILOT",
       `Referensi: ${receipt.reference}`,
       `Status: ${statusLabels[receipt.status]}`,
       `Travel: ${receipt.organization}`,
-      `Rekomendasi ilustratif: ${receipt.plan}`,
+      `Paket rekomendasi: ${receipt.plan}`,
       `Modul: ${modules[receipt.recommendation.module]}`,
-      `Kontak dummy: ${receipt.contact.name} / ${receipt.contact.email}`,
+      `Kontak: ${receipt.contact.name} / ${receipt.contact.email}`,
       `Waktu: ${new Date(receipt.createdAt).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })} WIB`,
-      "Harga resmi: belum ditetapkan. Tidak ada tagihan atau pembayaran.",
-      "Bukan quotation resmi. Tidak mengaktifkan langganan.",
-      "Tersimpan sebagai simulasi pada situs demo; tidak dikirim ke tim sales.",
+      "Harga resmi dikonfirmasi oleh Tim Arah Jamaah sebelum aktivasi.",
+      "Permintaan pilot bukan tagihan dan tidak memproses pembayaran otomatis.",
+      `Kontak Tim Arah Jamaah: WhatsApp 085952839393 · ${TEAM_EMAIL}`,
     ].join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(
@@ -308,8 +347,8 @@ export default function VisitorFlow({
       <div className="visitor-simulation-ribbon">
         <Info size={16} />
         <span>
-          Jelajah ini menggunakan data contoh. Pemesanan adalah simulasi
-          langganan Arah Jamaah untuk travel.
+          Data aplikasi adalah simulasi. Kalkulator paket dan permintaan pilot
+          menggunakan data yang Anda isi agar Tim Arah Jamaah dapat menindaklanjuti.
         </span>
       </div>
       {error && (
@@ -690,15 +729,11 @@ export default function VisitorFlow({
                     memerlukan review.
                   </small>
                 </label>
-                <label>
-                  Kode referral (opsional)
-                  <input
-                    maxLength={60}
-                    value={needs.referral}
-                    onChange={(e) => updateNeeds("referral", e.target.value)}
-                    placeholder="Kode affiliate SaaS"
-                  />
-                </label>
+                {needs.referral && (
+                  <div className="visitor-referral-note full">
+                    Referral partner tersimpan otomatis.
+                  </div>
+                )}
               </div>
               <div className="visitor-form-actions">
                 <button
@@ -802,11 +837,10 @@ export default function VisitorFlow({
               <div className="visitor-price-note">
                 <Info size={19} />
                 <div>
-                  <b>Harga resmi belum tersedia</b>
+                  <b>Paket direkomendasikan berdasarkan skala operasional</b>
                   <p>
-                    Ini klasifikasi kebutuhan, bukan quotation atau persetujuan
-                    harga. Angka, batas kontrak, dan aktivasi memerlukan
-                    konfirmasi.
+                    Harga resmi dan scope pilot dikonfirmasi Tim Arah Jamaah
+                    sebelum aktivasi berbayar dimulai.
                   </p>
                 </div>
               </div>
@@ -817,8 +851,8 @@ export default function VisitorFlow({
                 </button>
                 <button className="button primary" onClick={() => go(3)}>
                   {r.available
-                    ? "Lanjut ke pemesanan demo"
-                    : "Catat minat modul roadmap"}
+                    ? `Mulai pilot ${r.plan}`
+                    : "Kirim minat modul roadmap"}
                   <ArrowRight size={16} />
                 </button>
               </div>
@@ -892,30 +926,14 @@ export default function VisitorFlow({
               <div>
                 <h2>
                   {r.available
-                    ? "Simulasikan pemesanan Arah Jamaah"
+                    ? `Mulai pilot ${r.plan}`
                     : "Catat minat untuk modul mendatang"}
                 </h2>
                 <p>
-                  Lengkapi kontak contoh untuk melihat alur sampai konfirmasi.
+                  Lengkapi kontak agar Tim Arah Jamaah dapat menindaklanjuti kebutuhan Anda.
                 </p>
               </div>
-              <button
-                className="visitor-text-link"
-                onClick={() =>
-                  setDraft((d) => ({
-                    ...d,
-                    contact: {
-                      name: "Rina Contoh",
-                      email: "rina@example.com",
-                      phone: "081200001234",
-                      note: "Simulasi kebutuhan operasional travel.",
-                    },
-                  }))
-                }
-              >
-                <Sparkles size={14} />
-                Isi kontak contoh
-              </button>
+              <span className="visitor-small-label">DITINJAU TIM ARAH JAMAAH</span>
             </div>
             <form onSubmit={submit}>
               <div className="form-grid">
@@ -935,7 +953,7 @@ export default function VisitorFlow({
                   />
                 </label>
                 <label>
-                  Email contoh
+                  Email
                   <input
                     type="email"
                     required
@@ -952,7 +970,7 @@ export default function VisitorFlow({
                   />
                 </label>
                 <label>
-                  Nomor telepon contoh
+                  Nomor WhatsApp / telepon
                   <input
                     type="tel"
                     required
@@ -992,8 +1010,7 @@ export default function VisitorFlow({
                   }
                 />
                 <span>
-                  Saya memahami ini simulasi pemesanan dengan data contoh, tanpa
-                  pembayaran, pengiriman ke sales, atau aktivasi layanan nyata.
+                  Saya setuju data ini digunakan Tim Arah Jamaah untuk menghubungi saya terkait pilot dan penawaran. Tidak ada pembayaran otomatis dari formulir ini.
                 </span>
               </label>
               <div className="visitor-form-actions">
@@ -1014,8 +1031,8 @@ export default function VisitorFlow({
                   {busy
                     ? "Menyimpan…"
                     : r.available
-                      ? "Simpan pemesanan demo"
-                      : "Simpan minat demo"}
+                      ? "Kirim permintaan pilot"
+                      : "Kirim minat"}
                   <Check size={16} />
                 </button>
               </div>
@@ -1024,7 +1041,7 @@ export default function VisitorFlow({
           <aside className="visitor-order-summary">
             <span className="visitor-eyebrow">
               <ClipboardCheck size={15} />
-              RINGKASAN PEMESANAN SIMULASI
+              RINGKASAN PERMINTAAN PILOT
             </span>
             <h3>{r.organization}</h3>
             <dl>
@@ -1059,8 +1076,7 @@ export default function VisitorFlow({
             </dl>
             <p>
               <ShieldCheck size={18} />
-              Data kebutuhan dihitung ulang oleh server sebelum simulasi
-              disimpan.
+              Data kebutuhan dihitung ulang sebelum permintaan diteruskan ke Tim Arah Jamaah.
             </p>
           </aside>
         </div>
@@ -1070,14 +1086,13 @@ export default function VisitorFlow({
           <div className="visitor-success-icon">
             <CheckCircle2 size={35} />
           </div>
-          <span className="visitor-eyebrow">ALUR SELESAI · SIMULASI</span>
+          <span className="visitor-eyebrow">PERMINTAAN PILOT TERKIRIM</span>
           <h2>{statusLabels[receipt.status]}</h2>
           <p>
-            Anda sudah mencoba alur dari mengenal Arah Jamaah sampai mencatat
-            kebutuhan langganan travel.
+            Terima kasih. Tim Arah Jamaah akan meninjau kebutuhan travel Anda dan menghubungi kontak yang diberikan.
           </p>
           <div className="visitor-receipt">
-            <span>REFERENSI PEMESANAN DEMO</span>
+            <span>REFERENSI PERMINTAAN PILOT</span>
             <strong>{receipt.reference}</strong>
             <p>
               {receipt.organization} · {receipt.plan}
@@ -1090,25 +1105,36 @@ export default function VisitorFlow({
             </small>
           </div>
           <div className="visitor-success-next">
-            <h3>Dalam alur layanan yang sebenarnya</h3>
+            <h3>Langkah berikutnya</h3>
             <ol>
-              <li>Tim meninjau kebutuhan dan kesiapan modul.</li>
-              <li>
-                Harga resmi dan penawaran dikonfirmasi sebelum pembayaran.
-              </li>
-              <li>
-                Aktivasi mengikuti verifikasi dan persetujuan yang berlaku.
-              </li>
+              <li>Tim Arah Jamaah meninjau profil dan paket rekomendasi.</li>
+              <li>Tim menghubungi Anda untuk mengonfirmasi kebutuhan dan scope pilot.</li>
+              <li>Harga resmi dan aktivasi dikonfirmasi sebelum ada pembayaran.</li>
             </ol>
             <p>
-              Pada demo ini, data hanya tersimpan sebagai simulasi. Tidak ada
-              email, kontak sales, tagihan, atau aktivasi yang dikirim.
+              Formulir ini tidak membuat tagihan otomatis. Jika ingin lebih cepat, hubungi Tim Arah Jamaah melalui WhatsApp atau email di bawah.
             </p>
           </div>
           <div className="visitor-success-buttons">
-            <button className="button primary" onClick={exportReceipt}>
+            <a
+              className="button primary"
+              href={`https://wa.me/${TEAM_WHATSAPP}?text=${encodeURIComponent(
+                `Halo Tim Arah Jamaah, saya sudah mengisi permintaan pilot ${receipt.reference} untuk ${receipt.organization} (${receipt.plan}).`,
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Hubungi via WhatsApp
+              <ArrowRight size={16} />
+            </a>
+            <a className="button" href={`mailto:${TEAM_EMAIL}?subject=${encodeURIComponent(
+              `Permintaan Pilot Arah Jamaah - ${receipt.reference}`,
+            )}`}>
+              Email Tim Arah Jamaah
+            </a>
+            <button className="button" onClick={exportReceipt}>
               <Download size={16} />
-              Unduh ringkasan demo
+              Unduh ringkasan
             </button>
             <button className="button" onClick={() => onNavigate("dashboard")}>
               Kembali ke demo
@@ -1116,7 +1142,7 @@ export default function VisitorFlow({
             </button>
             <button className="visitor-text-link" onClick={reset}>
               <RotateCcw size={14} />
-              Mulai simulasi baru
+              Hitung ulang paket
             </button>
           </div>
         </section>

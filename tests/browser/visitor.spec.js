@@ -10,7 +10,7 @@ async function skipWelcome(page) {
 }
 async function calculateSample(page) {
   await page
-    .getByRole("button", { name: "Jelajah & Kebutuhan", exact: true })
+    .getByRole("button", { name: "Demo & Paket", exact: true })
     .click();
   await page
     .getByRole("button", { name: "Hitung kebutuhan travel", exact: true })
@@ -24,13 +24,13 @@ async function calculateSample(page) {
 async function readyToOrder(page) {
   await calculateSample(page);
   await page
-    .getByRole("button", { name: "Lanjut ke pemesanan demo", exact: true })
+    .getByRole("button", { name: "Mulai pilot STARTER", exact: true })
     .click();
+  await page.getByLabel("Nama penanggung jawab").fill("Rina Contoh");
+  await page.getByLabel("Email").fill("rina@example.com");
+  await page.getByLabel("Nomor WhatsApp / telepon").fill("081200001234");
   await page
-    .getByRole("button", { name: "Isi kontak contoh", exact: true })
-    .click();
-  await page
-    .getByRole("checkbox", { name: /Saya memahami ini simulasi/ })
+    .getByRole("checkbox", { name: /Saya setuju data ini digunakan/ })
     .check();
 }
 test("first visit welcomes once, can skip and replay, and restores app focus", async ({
@@ -82,7 +82,7 @@ test("guided tour navigates all six capabilities then opens visitor journey", as
       await page.getByRole("button", { name: "Lanjut", exact: true }).click();
   }
   await page
-    .getByRole("button", { name: "Mulai jelajah", exact: true })
+    .getByRole("button", { name: "Hitung paket", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: /Dari kenal, menjadi/ }),
@@ -95,7 +95,7 @@ test("welcome shortcut starts calculator directly and draft survives navigation/
 }) => {
   await page.goto("/");
   await page
-    .getByRole("button", { name: "Langsung hitung kebutuhan", exact: true })
+    .getByRole("button", { name: "Langsung hitung paket", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "Ceritakan kebutuhan travel Anda" }),
@@ -106,14 +106,14 @@ test("welcome shortcut starts calculator directly and draft survives navigation/
     .getByRole("button", { name: "Command Center", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Jelajah & Kebutuhan", exact: true })
+    .getByRole("button", { name: "Demo & Paket", exact: true })
     .click();
   await expect(page.getByLabel("Nama travel / organisasi")).toHaveValue(
     "Travel Draft Contoh",
   );
   await page.reload();
   await page
-    .getByRole("button", { name: "Jelajah & Kebutuhan", exact: true })
+    .getByRole("button", { name: "Demo & Paket", exact: true })
     .click();
   await expect(page.getByLabel("Jamaah aktif saat ini")).toHaveValue("72");
 });
@@ -123,11 +123,11 @@ test("needs → recommendation → simulated order produces persistent downloada
   await skipWelcome(page);
   await readyToOrder(page);
   await page
-    .getByRole("button", { name: "Simpan pemesanan demo", exact: true })
+    .getByRole("button", { name: "Kirim permintaan pilot", exact: true })
     .click();
   await expect(
     page.getByRole("heading", {
-      name: "Pemesanan simulasi tersimpan",
+      name: "Permintaan pilot diterima",
       exact: true,
     }),
   ).toBeVisible();
@@ -142,7 +142,7 @@ test("needs → recommendation → simulated order produces persistent downloada
   ).toHaveLength(1);
   await page.reload();
   await page
-    .getByRole("button", { name: "Jelajah & Kebutuhan", exact: true })
+    .getByRole("button", { name: "Demo & Paket", exact: true })
     .click();
   await expect(page.locator(".visitor-receipt strong")).toHaveText(ref);
   const downloadPromise = page.waitForEvent("download");
@@ -176,7 +176,7 @@ test("submission error preserves inputs and allows retry with same request id", 
     else await route.continue();
   });
   await page
-    .getByRole("button", { name: "Simpan pemesanan demo", exact: true })
+    .getByRole("button", { name: "Kirim permintaan pilot", exact: true })
     .click();
   await expect(page.getByRole("alert")).toContainText(
     "sementara tidak tersedia",
@@ -192,7 +192,7 @@ test("submission error preserves inputs and allows retry with same request id", 
   ).toBe(before);
   await page.unroute("**/api/action");
   await page
-    .getByRole("button", { name: "Simpan pemesanan demo", exact: true })
+    .getByRole("button", { name: "Kirim permintaan pilot", exact: true })
     .click();
   await expect(page.locator(".visitor-success")).toBeVisible();
 });
@@ -201,7 +201,7 @@ test("roadmap interests stay unavailable and do not advertise activation or an o
 }) => {
   await skipWelcome(page);
   await page
-    .getByRole("button", { name: "Jelajah & Kebutuhan", exact: true })
+    .getByRole("button", { name: "Demo & Paket", exact: true })
     .click();
   await page
     .getByRole("button", { name: "Hitung kebutuhan travel", exact: true })
@@ -217,17 +217,17 @@ test("roadmap interests stay unavailable and do not advertise activation or an o
   await page
     .getByRole("button", { name: "Catat minat modul roadmap", exact: true })
     .click();
+  await page.getByLabel("Nama penanggung jawab").fill("Rina Contoh");
+  await page.getByLabel("Email").fill("rina@example.com");
+  await page.getByLabel("Nomor WhatsApp / telepon").fill("081200001234");
   await page
-    .getByRole("button", { name: "Isi kontak contoh", exact: true })
-    .click();
-  await page
-    .getByRole("checkbox", { name: /Saya memahami ini simulasi/ })
+    .getByRole("checkbox", { name: /Saya setuju data ini digunakan/ })
     .check();
   await page
-    .getByRole("button", { name: "Simpan minat demo", exact: true })
+    .getByRole("button", { name: "Kirim minat", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Minat modul roadmap tercatat" }),
+    page.getByRole("heading", { name: "Minat Anda sudah tercatat" }),
   ).toBeVisible();
 });
 test("mobile tour and visitor journey fit viewport and keyboard can leave tour", async ({
@@ -256,7 +256,7 @@ test("mobile tour and visitor journey fit viewport and keyboard can leave tour",
       await page.getByRole("button", { name: "Lanjut", exact: true }).click();
   }
   await page
-    .getByRole("button", { name: "Mulai jelajah", exact: true })
+    .getByRole("button", { name: "Hitung paket", exact: true })
     .click();
   await page
     .getByRole("button", { name: "Hitung kebutuhan travel", exact: true })

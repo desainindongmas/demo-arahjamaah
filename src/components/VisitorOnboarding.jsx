@@ -70,7 +70,7 @@ const baseSteps = [
     target: ".visitor-flow-heading",
     name: "Temukan kebutuhan travel Anda",
     description:
-      "Ikuti alur penggunaan, hitung kebutuhan dari data operasional, lalu lanjut ke pemesanan simulasi. Harga resmi dan modul roadmap selalu dibedakan dengan jelas.",
+      "Setelah melihat demo, hitung kebutuhan travel, lihat paket rekomendasi, lalu kirim permintaan pilot ke Tim Arah Jamaah.",
     tag: "LANGKAH BERIKUTNYA",
     icon: Calculator,
   },
@@ -312,7 +312,7 @@ export default function VisitorOnboarding({
               className="visitor-text-link"
               onClick={() => finish("journey", "needs")}
             >
-              Langsung hitung kebutuhan
+              Langsung hitung paket
               <ArrowRight size={14} />
             </button>
             <p className="visitor-disclaimer">
@@ -379,11 +379,11 @@ export default function VisitorOnboarding({
             className="button primary"
             onClick={() =>
               index === steps.length - 1
-                ? finish("journey")
+                ? finish("journey", "needs")
                 : setIndex((i) => i + 1)
             }
           >
-            {index === steps.length - 1 ? "Mulai jelajah" : "Lanjut"}
+            {index === steps.length - 1 ? "Hitung paket" : "Lanjut"}
             {index === steps.length - 1 ? (
               <Check size={16} />
             ) : (

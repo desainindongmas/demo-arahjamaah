@@ -49,6 +49,7 @@ import {
   Receipt,
   Upload,
   Compass,
+  Calculator,
   Sparkles,
   CircleHelp,
 } from "lucide-react";
@@ -111,7 +112,7 @@ const nav = [
     section: "WORKSPACE",
     items: [
       ["dashboard", "Command Center", LayoutDashboard],
-      ["journey", "Jelajah & Kebutuhan", Compass],
+      ["journey", "Demo & Paket", Compass],
       ["departures", "Keberangkatan", Plane],
       ["people", "Jamaah", Users],
       ["leads", "Leads & Booking", Contact],
@@ -967,6 +968,20 @@ function App() {
             </div>
             <div className="topbar-right">
               <button
+                className="button small"
+                onClick={() => navigateVisitor("journey", "needs")}
+              >
+                <Calculator size={15} />
+                Hitung paket
+              </button>
+              <button
+                className="button primary small"
+                onClick={() => navigateVisitor("journey", "needs")}
+              >
+                Mulai pilot
+                <ArrowRight size={14} />
+              </button>
+              <button
                 className="visitor-replay-button"
                 aria-label="Ulangi tur demo"
                 title="Jelajah demo"
@@ -1072,8 +1087,8 @@ function App() {
                 <div className="visitor-flow-shortcut">
                   <span>
                     <Compass size={18} />
-                    <b>Kenali. Coba. Hitung. Pesan.</b>
-                    <small>Temukan alur yang tepat untuk travel Anda.</small>
+                    <b>Kenali. Coba. Hitung. Mulai pilot.</b>
+                    <small>Temukan paket yang sesuai lalu lanjutkan bersama Tim Arah Jamaah.</small>
                   </span>
                   <button
                     className="text-btn"
