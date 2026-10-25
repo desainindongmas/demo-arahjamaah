@@ -50,7 +50,7 @@ async function transaction(store, update) {
   throw new ConflictError("Data baru saja berubah. Silakan ulangi tindakan.");
 }
 
-export async function handleNetlifyRequest(request, getStore) {
+export async function handleNetlifyRequest(request, getStore, notifyPilot = null) {
   const role = request.headers.get("x-demo-role") || "owner";
   const tenant = request.headers.get("x-demo-tenant") || "org1";
   if (!roles.has(role)) return response({ error: "Peran tidak dikenal." }, 403);
@@ -116,9 +116,48 @@ export async function handleNetlifyRequest(request, getStore) {
       });
       return response({ ok: true });
     }
-    const result = await transaction(store, (db) =>
+    let result = await transaction(store, (db) =>
       mutate(db, input?.action, input?.data || {}, role),
     );
+
+    if (input?.action === "subscriptionOrder" && result && notifyPilot) {
+      const existingNotification = result.notification;
+      if (existingNotification?.email !== "SENT") {
+        let notification;
+        try {
+          notification = await notifyPilot(result);
+        } catch (error) {
+          console.error("Pilot email notification failed:", error?.message || error);
+          notification = {
+            email: "FAILED",
+            message:
+              "Permintaan tersimpan, tetapi notifikasi email belum terkirim.",
+          };
+        }
+        try {
+          result = await transaction(store, (db) => {
+            const order = (db.subscriptionOrders || []).find(
+              (item) => item.requestId === result.requestId,
+            );
+            if (order) {
+              order.notification = {
+                ...notification,
+                updatedAt: new Date().toISOString(),
+              };
+              return order;
+            }
+            return { ...result, notification };
+          });
+        } catch (error) {
+          console.error(
+            "Pilot notification status could not be persisted:",
+            error?.message || error,
+          );
+          result = { ...result, notification };
+        }
+      }
+    }
+
     return response({ ok: true, ...(result ? { result } : {}) });
   } catch (error) {
     if (error instanceof ConflictError)
