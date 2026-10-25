@@ -45,6 +45,50 @@ const request = (path, body, role = "owner", tenant = "org1") =>
   });
 const run = (store, path, body, role, tenant) =>
   handleNetlifyRequest(request(path, body, role, tenant), () => store);
+test("subscription request can trigger a pilot notification callback", async () => {
+  const s = memoryStore();
+  let notified = null;
+  const input = {
+    requestId: crypto.randomUUID(),
+    needs: {
+      organization: "Travel Email Test",
+      organizationType: "PPIU",
+      module: "UMRAH_OPERATIONS",
+      hasHistory: "yes",
+      ttm: "120",
+      active: "50",
+      departures: "2",
+      users: "3",
+      branches: "1",
+      referral: "",
+    },
+    contact: {
+      name: "PIC Test",
+      email: "pic@example.com",
+      phone: "081200001234",
+      note: "",
+    },
+    consent: true,
+  };
+  const req = request("action", {
+    action: "subscriptionOrder",
+    data: input,
+  });
+  const res = await handleNetlifyRequest(
+    req,
+    () => s,
+    async (order) => {
+      notified = order.reference;
+      return { email: "SENT", to: "team@example.com" };
+    },
+  );
+  const body = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(notified, body.result.reference);
+  assert.equal(body.result.notification.email, "SENT");
+  assert.equal(s.data.subscriptionOrders[0].notification.email, "SENT");
+});
+
 test("Netlify native request uses same domain behavior and financial visibility", async () => {
   const s = memoryStore();
   let r = await run(s, "state", null, "ops");
