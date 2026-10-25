@@ -1083,7 +1083,11 @@ export default function VisitorFlow({
               <li>Harga resmi dan aktivasi dikonfirmasi sebelum ada pembayaran.</li>
             </ol>
             <p>
-              Formulir ini tidak membuat tagihan otomatis. Jika ingin lebih cepat, hubungi Tim Arah Jamaah melalui WhatsApp atau email di bawah.
+              Formulir ini tidak membuat tagihan otomatis. {receipt.notification?.email === "SENT"
+                ? "Notifikasi email sudah dikirim otomatis ke Tim Arah Jamaah."
+                : receipt.notification?.email === "FAILED"
+                  ? "Permintaan tetap tersimpan, tetapi notifikasi email sedang bermasalah."
+                  : "Permintaan sudah tersimpan di sistem."}
             </p>
           </div>
           <div className="visitor-success-buttons">
@@ -1097,11 +1101,6 @@ export default function VisitorFlow({
             >
               Hubungi via WhatsApp
               <ArrowRight size={16} />
-            </a>
-            <a className="button" href={`mailto:${TEAM_EMAIL}?subject=${encodeURIComponent(
-              `Permintaan Pilot Arah Jamaah - ${receipt.reference}`,
-            )}`}>
-              Email Tim Arah Jamaah
             </a>
             <button className="button" onClick={exportReceipt}>
               <Download size={16} />
